@@ -1,0 +1,74 @@
+@page
+@model CengProject.Pages.Admin.InstructorAccountManagerModel
+@{
+    ViewData["Title"] = "Instructor Account Manager";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<div class="container py-5">
+    <h2 class="fw-bold text-primary mb-4">
+        <i class="bi bi-people-fill me-2"></i> Instructor Account Manager
+    </h2>
+
+    <!-- Create New Instructor -->
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-body">
+            <h5 class="card-title text-success fw-semibold">
+                <i class="bi bi-person-plus-fill me-2"></i> Create New Instructor
+            </h5>
+            <form method="post" asp-page-handler="Create">
+                <div class="mb-3">
+                    <input asp-for="NewInstructorEmail" placeholder="Email" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <input asp-for="NewInstructorPassword" placeholder="Password" class="form-control" type="password" />
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle me-1"></i> Create
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Active Instructors -->
+    <h5 class="fw-semibold text-info mb-3">
+        <i class="bi bi-person-lines-fill me-2"></i> Active Instructors
+    </h5>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle shadow-sm border rounded">
+            <thead class="table-light">
+                <tr class="text-secondary">
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var instructor in Model.Instructors)
+                {
+                    <tr>
+                        <td>@instructor.Email</td>
+                        <td>
+                            <span class="badge @(instructor.IsActive ? "bg-success" : "bg-secondary")">
+                                @(instructor.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            @if (instructor.IsActive)
+                            {
+                                <form method="post" asp-page-handler="Deactivate" class="d-inline">
+                                    <input type="hidden" name="InstructorId" value="@instructor.Id" />
+                                    <button class="btn btn-outline-warning btn-sm text-dark">
+                                        <i class="bi bi-person-x me-1"></i> Deactivate
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

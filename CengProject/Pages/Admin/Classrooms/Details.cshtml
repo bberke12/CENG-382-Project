@@ -1,0 +1,44 @@
+@page
+@model CengProject.Pages_Admin_Classrooms.DetailsModel
+
+@{
+    ViewData["Title"] = "Classroom Details";
+}
+
+<h2>Classroom Details</h2>
+<hr />
+<dl class="row">
+    <dt class="col-sm-3">Room Name</dt>
+    <dd class="col-sm-9">@Model.Classroom.RoomName</dd>
+
+    <dt class="col-sm-3">Capacity</dt>
+    <dd class="col-sm-9">@Model.Classroom.Capacity</dd>
+</dl>
+
+<h4 class="mt-4">Feedbacks</h4>
+@if (Model.Feedbacks.Any())
+{
+    <ul class="list-group">
+        @foreach (var f in Model.Feedbacks)
+        {
+            <li class="list-group-item">
+                <strong>Rating:</strong>
+                @for (int i = 0; i < f.Rating; i++) { <span class="text-warning">★</span> }
+                @for (int i = f.Rating; i < 5; i++) { <span class="text-secondary">☆</span> }
+                <br />
+                <strong>Comment:</strong> @f.Comment
+                <br />
+                <small class="text-muted">Submitted on @f.Date.ToShortDateString()</small>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No feedback yet.</p>
+}
+
+<p class="mt-4">
+    <a asp-page="./Edit" asp-route-id="@Model.Classroom.ClassroomId" class="btn btn-primary">Edit</a>
+    <a asp-page="./Index" class="btn btn-secondary">Back to List</a>
+</p>

@@ -1,0 +1,153 @@
+@page
+@model CengProject.Pages.Instructor.ReservationCalendarModel
+@{
+    ViewData["Title"] = "Reservation Calendar";
+}
+
+<div id="calendar"></div>
+
+<!-- Modal -->
+<div class="modal fade" id="reservationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="reservationForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reservation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="ReservationId" id="ReservationId" />
+                    <input type="hidden" asp-for="SelectedDate" id="ReservationDate" />
+                    <div class="mb-3">
+                        <label>Classroom</label>
+                        <select asp-for="ClassroomId" class="form-select" id="ClassroomId">
+                            @foreach (var c in Model.Classrooms)
+                            {
+                                <option value="@c.Id">@c.RoomName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Start Time</label>
+                        <input type="time" asp-for="StartTime" id="StartTime" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label>End Time</label>
+                        <input type="time" asp-for="EndTime" id="EndTime" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            const holidayDates = [];
+            let currentEvents = [];
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                selectable: true,
+                events: '/Instructor/ReservationCalendar?handler=Reservations',
+                dateClick: function (info) {
+                    const clickedDate = info.dateStr;
+
+                    if (holidayDates.includes(clickedDate)) {
+                        alert("This is a public holiday. You cannot make a reservation.");
+                        return;
+                    }
+
+                    document.getElementById('ReservationDate').value = clickedDate;
+                    document.getElementById('ReservationId').value = '';
+                    document.getElementById('StartTime').value = '08:00';
+                    document.getElementById('EndTime').value = '10:00';
+                    new bootstrap.Modal(document.getElementById('reservationModal')).show();
+                },
+                eventClick: function (info) {
+                    const res = info.event.extendedProps;
+                    document.getElementById('ReservationId').value = res.id;
+                    document.getElementById('ReservationDate').value = info.event.startStr.split('T')[0];
+                    document.getElementById('StartTime').value = new Date(info.event.start).toISOString().substring(11, 16);
+                    document.getElementById('EndTime').value = new Date(info.event.end).toISOString().substring(11, 16);
+                    document.getElementById('ClassroomId').value = res.classroomId;
+                    new bootstrap.Modal(document.getElementById('reservationModal')).show();
+                },
+                eventDidMount: function (info) {
+                    const status = info.event.extendedProps.status;
+                    const colors = {
+                        'Approved': '#28a745',  // yeşil
+                        'Rejected': '#dc3545',  // kırmızı
+                        'Pending': '#ffc107'    // sarı
+                    };
+
+                    const dot = document.createElement('span');
+                    dot.style.display = 'inline-block';
+                    dot.style.width = '10px';
+                    dot.style.height = '10px';
+                    dot.style.borderRadius = '50%';
+                    dot.style.marginRight = '6px';
+                    dot.style.backgroundColor = colors[status] || '#3788d8';
+
+                    const titleEl = info.el.querySelector('.fc-event-title');
+                    if (titleEl) {
+                        titleEl.prepend(dot);
+                    }
+                }
+
+            });
+
+            fetch(`https://date.nager.at/api/v3/PublicHolidays/${new Date().getFullYear()}/TR`)
+                .then(res => res.json())
+                .then(data => {
+                    const holidays = data.map(h => {
+                        holidayDates.push(h.date);
+                        return {
+                            title: h.localName,
+                            start: h.date,
+                            allDay: true,
+                            display: 'background',
+                            color: '#ffdddd'
+                        };
+                    });
+                    calendar.addEventSource(holidays);
+                });
+
+            calendar.render();
+
+            document.getElementById('reservationForm').addEventListener('submit', function (e) {
+                const date = document.getElementById("ReservationDate").value;
+                const start = document.getElementById("StartTime").value;
+                const end = document.getElementById("EndTime").value;
+                const classroomId = document.getElementById("ClassroomId").value;
+
+                const startDateTime = new Date(`${date}T${start}`);
+                const endDateTime = new Date(`${date}T${end}`);
+
+                const conflict = currentEvents.some(ev => {
+                    if (!ev.extendedProps || ev.extendedProps.classroomId != classroomId) return false;
+
+                    const evStart = new Date(ev.start);
+                    const evEnd = new Date(ev.end);
+                    return (startDateTime < evEnd && endDateTime > evStart);
+                });
+
+                if (conflict) {
+                    alert("This time slot is already reserved.");
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+}
